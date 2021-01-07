@@ -25,7 +25,7 @@ class Energy(db.Model):
 def index():
     return render_template('index.html')
 
-@app.route('/recentdata')
+@app.route('/hisoricaldata')
 def show_plot():
     plot = create_recent_data_plot()
     return render_template('data-plot.html', plot=plot)

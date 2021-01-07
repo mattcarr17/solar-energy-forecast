@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
@@ -25,20 +25,53 @@ class Energy(db.Model):
 def index():
     return render_template('index.html')
 
-@app.route('/hisoricaldata')
-def show_plot():
-    plot = create_recent_data_plot()
-    return render_template('data-plot.html', plot=plot)
 
+@app.route('/historicaldata', methods=['GET', 'POST'])
+def historical_plot():
+    if request.method == 'POST':
+        start_date = pd.Timestamp(request.form['start-date'])
+        end_date = pd.Timestamp(request.form['end-date'])
+        frequency = request.form.get('frequency')
+    else:
+        today = datetime.today()
+        yesterday = today - timedelta(days=1)
+        start_date = pd.Timestamp(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0)
+        end_date = pd.Timestamp(today.year, today.month, today.day, 0, 0, 0)
+        frequency = 'H'
 
-def create_recent_data_plot():
-    today = datetime.today()
-    yesterday = today - timedelta(days=1)
-    first_index = pd.Timestamp(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0)
-    second_index = pd.Timestamp(today.year, today.month, today.day, 0, 0, 0)
+    frequency_dict = {'H': 'Hourly', 'D': 'Daily', 'W': 'Weekly', 'M': 'Monthly'}
+    
+    plot = create_historical_plot(start_date, end_date, frequency)
+    dates = [start_date.strftime("%m/%d/%Y"), end_date.strftime("%m/%d/%Y")]
 
+    return render_template('historical_data.html', dates=dates, frequency=frequency_dict[frequency], plot=plot)
+
+def create_historical_plot(start_date, end_date, frequency):
+
+    df = create_historical_df(start_date, end_date, frequency)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df['energy']
+        )
+    )
+
+    fig.update_layout(
+        xaxis_title="Time",
+        yaxis_title="Energy Production",
+        height=900,
+        width=1300
+    )
+
+    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+    return graphJSON
+
+def create_historical_df(start_date, end_date, frequency):
     data_query = Energy.query.with_entities(Energy.time, Energy.inverter).\
-        filter(Energy.time >= first_index).filter(Energy.time < second_index).all()
+        filter(Energy.time >= start_date).filter(Energy.time <= end_date).all()
     
     dates = []
     energy_values = []
@@ -46,26 +79,10 @@ def create_recent_data_plot():
         dates.append(d[0])
         energy_values.append(d[1])
 
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=dates,
-            y=energy_values
-        )
-    )
+    df = pd.DataFrame(index=dates, columns=['energy'], data=energy_values)
+    df_resampled = df.resample(frequency).sum()
 
-    fig.update_layout(
-        title="Yesterday's Energy Production",
-        xaxis_title="Time",
-        yaxis_title="Energy Production",
-        height=1000,
-        width=1250
-    )
-
-    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
-    return graphJSON
-
+    return df_resampled
 
 if __name__ == '__main__':
     app.run(debug=True)

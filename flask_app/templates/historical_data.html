@@ -10,6 +10,12 @@
 
         <!-- CSS -->
         <link rel="stylesheet" href="../static/styles/style.css">
+        <style>
+            #historical-data-form{
+                margin-top: 5em;
+                background-color: white;
+            }
+        </style>
     </head>
     <body>
         <!--Start navigation bar-->
@@ -32,21 +38,23 @@
         <!--End Navigation bar-->
         <!-- Start Options Section -->
         <div class='container'>
-            <div class='row'>
-                <form action="/historicaldata" method='POST' id=historical-data-form>
-                    <label for="startdate">Start Date:</label>
-                    <input type="date" name="start-date" id='start-date' placeholder='Start Date' onfocus="(this.type='date')" onblur="(this.type='text')">
-                    <label for="enddate">End Date:</label>
-                    <input type="date" name="end-date" id="end-date" placeholder="End Date"  onfocus="(this.type='date')" onblur="(this.type='text')">
-                    <label for="frequency">Frequency: </label>
-                    <select name="frequency" id="time-frequency">
-                        <option value="H">Hourly</option>
-                        <option value="D">Daily</option>
-                        <option value="W">Weekly</option>
-                        <option value="M">Monthly</option>
-                    </select>
-                    <button type="submit" class='btn btn-secondary'>Create Chart</button>
-                </form>
+            <div class='d-flex justify-content-center'>
+                <div class='row'>
+                    <form action="/historicaldata" method='POST' id='historical-data-form'>
+                        <label for="startdate">Start Date:</label>
+                        <input type="date" name="start-date" id='start-date'>
+                        <label for="enddate">End Date:</label>
+                        <input type="date" name="end-date" id="end-date">
+                        <label for="frequency">Frequency: </label>
+                        <select name="frequency" id="time-frequency">
+                            <option value="H">Hourly</option>
+                            <option value="D">Daily</option>
+                            <option value="W">Weekly</option>
+                            <option value="M">Monthly</option>
+                        </select>
+                        <button type="submit" class='btn btn-secondary'>Create Chart</button>
+                    </form>
+                </div>
             </div>
         </div>
         <!-- End Options Section -->
@@ -54,8 +62,8 @@
         <!-- Start Plot Section -->
         <div class='container'>
             <div class='row'>
-                <div class='col-md-6'>
-                    <h2>{{ frequency }} Energy Production {{ dates[0] }} - {{ dates[1] }}</h2>
+                <div class='col-md-12'>
+                    <h2 class='text-center'>{{ frequency }} Energy Production {{ dates[0] }} - {{ dates[1] }}</h2>
                     <div class='chart' id='energy_plot'>
                         <script>
                             var graphs = {{plot | safe}};

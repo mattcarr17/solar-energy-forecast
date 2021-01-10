@@ -70,7 +70,7 @@ def create_historical_plot(start_date, end_date, frequency):
     return graphJSON
 
 def create_historical_df(start_date, end_date, frequency):
-    data_query = Energy.query.with_entities(Energy.time, Energy.inverter).\
+    data_query = Energy.query.with_entities(Energy.time, Energy.meter).\
         filter(Energy.time >= start_date).filter(Energy.time <= end_date).all()
     
     dates = []

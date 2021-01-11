@@ -59,7 +59,7 @@ def create_historical_plot(start_date, end_date, frequency):
 
     fig.update_layout(
         xaxis_title="Time",
-        yaxis_title="Energy Production",
+        yaxis_title="Energy Production (MWh)",
         height=900,
         width=1300
     )
@@ -69,7 +69,7 @@ def create_historical_plot(start_date, end_date, frequency):
     return graphJSON
 
 def create_historical_df(start_date, end_date, frequency):
-    data_query = Energy.query.with_entities(Energy.time, Energy.meter).\
+    data_query = Energy.query.with_entities(Energy.time, Energy.energy).\
         filter(Energy.time >= start_date).filter(Energy.time <= end_date).all()
     
     dates = []

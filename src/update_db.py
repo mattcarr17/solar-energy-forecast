@@ -1,84 +1,41 @@
-import os
-import web_scraper as ws
-from datetime import datetime
-import pandas as pd
 import psycopg2
-import time
+import pandas as pd
+from datetime import timedelta
+import requests 
+import json
 
-directory = '/Users/mattcarr/Desktop/work/projects/solar-energy-forecast/data'
+api_key = ''
+url = 'http://api.eia.gov/series/?api_key={}&series_id=EBA.MISO-ALL.NG.SUN.H&num=24'.format(api_key)
 
-# instantiate scraper object
-scraper = ws.EnergyScraper(directory=directory)
+resp = requests.get(url)
 
-# Download files from today and yesterday into data/
-time.sleep(8)
-scraper.download()
-scraper.next_page()
-time.sleep(5)
-scraper.download()
-time.sleep(3)
+assert resp.status_code == 200
 
-# Close scraper
-scraper.close_driver()
+data = resp.json()
 
-# Store files in pandas dataframe
-files = os.listdir('../data')
-fl = ['../data/' + str(f) for f in files]
-dfs = [pd.read_csv(f) for f in fl]
-df = pd.concat(dfs)
+df = pd.DataFrame(columns=['time', 'energy'], data=data['series'][0]['data'])
+df['time'] = pd.to_datetime(df['time'], utc=True).dt.tz_localize(None)
 
-# Change column names and drop first two rows (no data)
-df.columns = ['time', 'meter', 'inverter']
-df.drop([0, 1], axis=0, inplace=True)
+time_converter = lambda t: t - timedelta(hours=6)
 
-# Convert time column to datetime type and sort dataframe chronologically
-df['time'] = pd.to_datetime(df['time'])
-df = df.sort_values('time')
+df['time'] = df['time'].apply(time_converter)
 
-# Set time as index and convert meter and inverter to float types
-df.set_index('time', inplace=True)
-df = df.astype(float)
+df.sort_values('time', inplace=True)
+df.reset_index(inplace=True)
 
-# Resample dataframe to hourly time index
-hourly = df.resample('H').sum()
+conn = psycopg2.connect('dbname=energyapp user=postgres')
 
-# Create timestamp column
-hourly['timestamp'] = hourly.index
-
-# Connect to local postgres database
-conn = psycopg2.connect('dbname=energyapp user=postgres password=Live.absolutely1')
 cur = conn.cursor()
 
-today = datetime.today()
-current_time = pd.Timestamp(today.year, today.month, today.day, today.hour, 0, 0)
+for i in range(df.shape[0]):
+    row = df.iloc[i]
+    time = row.time
+    energy = float(row.energy)
+    cur.execute('''
+        INSERT INTO energy (time, energy) VALUES (%s, %s);
+        ''', (time, energy))
 
-# Query last entry in database
-cur.execute("""
-    SELECT time FROM energy WHERE id=(SELECT max(id) FROM energy);
-""")
-last_entry_time = pd.Timestamp(cur.fetchone()[0])
-
-# Filter dataframe to include records after last entry in database
-# and before current time
-update_data = hourly[(hourly['timestamp'] > last_entry_time) & (hourly['timestamp'] < current_time)]
-
-# Input data to postgres database
-for i in range(update_data.shape[0]):
-    row = update_data.iloc[i]
-    time = pd.Timestamp(row['timestamp'])
-    meter = float(row['meter'])
-    inverter = float(row['inverter'])
-    cur.execute("""
-        INSERT INTO energy (time, meter, inverter) VALUES (%s, %s, %s);""", (time, meter, inverter)
-    )
-
-# Commit changes to database
 conn.commit()
 
-# Close connection
 cur.close()
 conn.close()
-
-# Delete files from data/
-for f in fl:
-    os.remove(f)

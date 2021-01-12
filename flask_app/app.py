@@ -3,16 +3,49 @@ from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
 import plotly
 import plotly.graph_objects as go
 import json
 import pandas as pd
+import requests
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_pyfile('config.py')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+API_KEY = app.config['API_KEY']
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+scheduler = BackgroundScheduler()
+
+def scheduled_db_update():
+    error = False
+    data = gather_data_from_api()
+    try:
+        db.session.add_all(data)
+        db.session.commit()
+    except:
+        db.session.rollback()
+        error = True
+    finally:
+        db.session.close()
+
+
+def gather_data_from_api():
+    url = 'http://api.eia.gov/series/?api_key={}&series_id=EBA.MISO-ALL.NG.SUN.H&num=24'.format(API_KEY)
+    resp = requests.get(url)
+    data = resp.json()
+    df = pd.DataFrame(columns=['time', 'energy'], data=data['series'][0]['data'])
+    df['time'] = pd.to_datetime(df['time'], utc=True).dt.tz_localize(None)
+    time_converter = lambda t: t - timedelta(hours=6)
+    df['time'] = df['time'].apply(time_converter)
+    df.sort_values('time', inplace=True)
+    df.reset_index(inplace=True)
+    data = [Energy(time=t, energy=e) for t, e in zip(df['time'], df['energy'])]
+    return data
+
+scheduler.add_job(scheduled_db_update, 'cron', day='*', hour='9')
+scheduler.start()
 
 class Energy(db.Model):
     __tablename__ = 'energy'
@@ -84,4 +117,4 @@ def create_historical_df(start_date, end_date, frequency):
     return df_resampled
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)

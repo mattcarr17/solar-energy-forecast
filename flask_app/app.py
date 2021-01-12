@@ -78,7 +78,7 @@ def historical_plot():
 
     return render_template('historical_data.html', dates=dates, frequency=frequency_dict[frequency], plot=plot)
 
-def create_historical_plot(start_date, end_date, frequency):
+def create_historical_plot(start_date, end_date, frequency='H'):
 
     df = create_historical_df(start_date, end_date, frequency)
 
@@ -103,7 +103,7 @@ def create_historical_plot(start_date, end_date, frequency):
 
 def create_historical_df(start_date, end_date, frequency):
     data_query = Energy.query.with_entities(Energy.time, Energy.energy).\
-        filter(Energy.time >= start_date).filter(Energy.time <= end_date).all()
+        filter(Energy.time >= start_date).filter(Energy.time < end_date).all()
     
     dates = []
     energy_values = []
@@ -111,7 +111,7 @@ def create_historical_df(start_date, end_date, frequency):
         dates.append(d[0])
         energy_values.append(d[1])
 
-    df = pd.DataFrame(index=dates, columns=['energy'], data=energy_values)
+    df = pd.DataFrame(index=pd.to_datetime(dates), columns=['energy'], data=energy_values)
     df_resampled = df.resample(frequency).sum()
 
     return df_resampled

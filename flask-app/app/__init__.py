@@ -2,11 +2,6 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
-import json
-import pandas as pd
-import requests
 
 
 app = Flask(__name__, instance_relative_config=True)

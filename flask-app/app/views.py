@@ -1,11 +1,8 @@
 from flask import Blueprint, render_template, request
-from app import app, db
-from .models import Energy
-import plotly
-import plotly.graph_objects as go
-import json
 import pandas as pd
 from datetime import datetime, timedelta
+from .forecast import forecast
+from .utils import *
 
 views = Blueprint('views', __name__, template_folder='templates', static_folder='static')
 
@@ -34,40 +31,8 @@ def historical_plot():
 
     return render_template('historical_data.html', dates=dates, frequency=frequency_dict[frequency], plot=plot)
 
-def create_historical_plot(start_date, end_date, frequency='H'):
 
-    df = create_historical_df(start_date, end_date, frequency)
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['energy']
-        )
-    )
-
-    fig.update_layout(
-        xaxis_title="Time",
-        yaxis_title="Energy Production (MWh)",
-        height=900,
-        width=1300
-    )
-
-    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
-    return graphJSON
-
-def create_historical_df(start_date, end_date, frequency):
-    data_query = Energy.query.with_entities(Energy.time, Energy.energy).\
-        filter(Energy.time >= start_date).filter(Energy.time < end_date).all()
-    
-    dates = []
-    energy_values = []
-    for d in data_query:
-        dates.append(d[0])
-        energy_values.append(d[1])
-
-    df = pd.DataFrame(index=pd.to_datetime(dates), columns=['energy'], data=energy_values)
-    df_resampled = df.resample(frequency).sum()
-
-    return df_resampled
+@views.route('/forecasts')
+def display_forecast():
+    results = create_forecast()
+    return render_template('forecasts.html', plot=results[0], results=results[1])

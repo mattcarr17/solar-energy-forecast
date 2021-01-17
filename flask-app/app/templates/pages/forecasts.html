@@ -1,0 +1,55 @@
+{% extends 'layout/base.html' %}
+{% block title %}Forecasts{% endblock %}
+{% block head %}
+    {{ super() }}
+    <!-- Scripts for Plotly -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+    <!-- Styling -->
+    <!-- <style>
+        .forecast-section{
+            margin-top:3em;
+        }
+        table, th, td{
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        #forecast-table{
+            margin-top:2em;
+        }
+        #forecast-plot{
+            margin-top: 0;
+        }
+    </style> -->
+{% endblock %}
+{% block content %}
+    <!-- Start Plot Section -->
+    <div class='forecast-section container'>
+        <h2 class='text-center'>24 Hour Forecast for {{ date }}</h2>
+        <div class='row'>
+            <div class='col-md-2' id='forecast-table'>
+                <table>
+                    <tr>
+                        <th>Time</th>
+                        <th>Energy (MWh)</th>
+                    </tr>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ result[0] }}</td>
+                        <td>{{ result[1] }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div class='col-md-10'>
+                <div class='chart' id='forecast_plot'>
+                    <script>
+                        var graphs = {{plot | safe}};
+                        Plotly.plot('forecast_plot', graphs, {});
+                    </script> 
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Plot Section -->
+{% endblock %}

@@ -21,10 +21,12 @@ def create_historical_plot(start_date, end_date, frequency='H'):
     )
 
     fig.update_layout(
-        xaxis_title="Time",
+        xaxis_title='Time',
+        xaxis_title_standoff=0,
         yaxis_title="Energy Production (MWh)",
-        height=900,
-        width=1300
+        height=850,
+        width=1300,
+        margin=dict(t=20, pad=0)
     )
 
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
@@ -50,12 +52,13 @@ def create_forecast():
     data = get_training_data()
     results = forecast(data)
     plot = forecast_plot(results)
+    date = results.values[0][0].strftime("%m/%d/%Y")
     formatted_results = []
     for r in results.values:
         time = datetime.strftime(r[0], '%H:%M:%S')
         energy = round(r[1], 2)
         formatted_results.append((time, energy))
-    return (plot, formatted_results)
+    return (plot, formatted_results, date)
 
 def get_training_data():
     today2 = datetime.today()
@@ -87,8 +90,9 @@ def forecast_plot(d):
     fig.update_layout(
         xaxis_title="Time",
         yaxis_title="Energy Production (MWh)",
-        height=900,
-        width=1300
+        height=850,
+        width=1300,
+        margin=dict(t=20, pad=0)
     )
 
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)

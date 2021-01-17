@@ -1,0 +1,29 @@
+#home-content{
+    margin-top: 20em;
+}
+
+/* Historical Data Page */
+#historical-data-form{
+    margin-top: 4em;
+    margin-bottom: 1em;
+    background-color: white;
+}
+
+.plot-title{
+    margin-bottom: 0;
+}
+
+/* Forecast Page */
+.forecast-section{
+    margin-top:4em;
+}
+table, th, td{
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+#forecast-table{
+    margin-top: 3em;
+}
+#forecast-plot{
+    margin-top: 0;
+}

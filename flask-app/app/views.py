@@ -8,7 +8,7 @@ views = Blueprint('views', __name__, template_folder='templates', static_folder=
 
 @views.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('pages/index.html')
 
 
 @views.route('/historicaldata', methods=['GET', 'POST'])
@@ -29,10 +29,10 @@ def historical_plot():
     plot = create_historical_plot(start_date, end_date, frequency)
     dates = [start_date.strftime("%m/%d/%Y"), end_date.strftime("%m/%d/%Y")]
 
-    return render_template('historical_data.html', dates=dates, frequency=frequency_dict[frequency], plot=plot)
+    return render_template('pages/historical_data.html', dates=dates, frequency=frequency_dict[frequency], plot=plot)
 
 
 @views.route('/forecasts')
 def display_forecast():
     results = create_forecast()
-    return render_template('forecasts.html', plot=results[0], results=results[1])
+    return render_template('pages/forecasts.html', plot=results[0], results=results[1], date=results[2])
